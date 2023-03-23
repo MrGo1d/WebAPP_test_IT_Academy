@@ -1,4 +1,4 @@
-"""https://metanit.com/python/fastapi/1.15.php"""
+# """https://metanit.com/python/fastapi/1.15.php"""
 from database import *
 from sqlalchemy.orm import Session
 from fastapi import Depends, FastAPI, Body
@@ -9,20 +9,7 @@ from sqlalchemy.ext.declarative import declarative_base
 
 
 
-# book1 = Book('War and peace', 'Trilogy', 'Lev Tolstoy')
-# создаем таблицы
 
-# book = Book(title='War and peace', genre='Trilogy', author_id=db.au)
-# questions = db.query(Book).all()
-
-# for q in questions:
-#     print(q.title)
-# db.commit()
-
-
-
-# Base.metadata.create_all(bind=engine)
- 
 app = FastAPI()
  
 # определяем зависимость
@@ -35,7 +22,7 @@ def get_db():
         yield db
     finally:
         db.close()
-  
+
 @app.get("/")
 def main():
     return FileResponse("public/index.html")
@@ -67,7 +54,6 @@ def create_author(data = Body(), db: Session = Depends(get_db)):
         db.refresh(author)
     return author
 
-
 @app.put("/api/authors")
 def edit_author(data  = Body(), db: Session = Depends(get_db)):
    
@@ -75,15 +61,17 @@ def edit_author(data  = Body(), db: Session = Depends(get_db)):
     author = db.query(Author).filter(Author.id == data["id"]).first()
     # если не найден, отправляем статусный код и сообщение об ошибке
     if author == None: 
-        return JSONResponse(status_code=404, content={ "message": "[!] Пользователь не найден"})
+        return JSONResponse(status_code=404, content={ "message": "Пользователь не найден"})
     # если пользователь найден, изменяем его данные и отправляем обратно клиенту
+    # person.age = data["age"]
     author.name = data["name"]
     db.commit() # сохраняем изменения 
     db.refresh(author)
     return author
 
 
-@app.delete("/api/users/{id}")
+
+@app.delete("/api/authors/{id}")
 def delete_author(id, db: Session = Depends(get_db)):
     # получаем пользователя по id
     author = db.query(Author).filter(Author.id == id).first()
@@ -97,7 +85,7 @@ def delete_author(id, db: Session = Depends(get_db)):
     db.commit()     # сохраняем изменения
     return author
 
-from sqlalchemy.orm import sessionmaker
+# from sqlalchemy.orm import sessionmaker
 
 
 # get_db()
