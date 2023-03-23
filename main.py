@@ -1,98 +1,114 @@
 """https://metanit.com/python/fastapi/1.15.php"""
-# import uuid
-# from fastapi import FastAPI, Body, status, Header
-# from fastapi.responses import JSONResponse, FileResponse
- 
-# class Person:
-#     def __init__(self, name, age):
-#         self.name = name
-#         self.age = age
-#         self.id = str(uuid.uuid4())
- 
-# # условная база данных - набор объектов Person
-# people = [Person("Tom", 38), Person("Bob", 42), Person("Sam", 28)]
- 
-# # для поиска пользователя в списке people
-# def find_person(id):
-#    for person in people: 
-#         if person.id == id:
-#            return person
-#    return None
- 
-# app = FastAPI()
- 
-# @app.get("/")
-# async def main(user_agent: str | None = Header(default=None)):
-#     print(user_agent)
-#     return FileResponse("public/index.html")
- 
-# @app.get("/api/users")
-# def get_people():
-#     return people
- 
-# @app.get("/api/users/{id}")
-# def get_person(id):
-#     # получаем пользователя по id
-#     person = find_person(id)
-#     print(person)
-#     # если не найден, отправляем статусный код и сообщение об ошибке
-#     if person==None:  
-#         return JSONResponse(
-#                 status_code=status.HTTP_404_NOT_FOUND, 
-#                 content={ "message": "Пользователь не найден" }
-#         )
-#     #если пользователь найден, отправляем его
-#     return person
- 
- 
-# @app.post("/api/users")
-# def create_person(data  = Body()):
-#     person = Person(data["name"], data["age"])
-#     # добавляем объект в список people
-#     people.append(person)
-#     return person
- 
-# @app.put("/api/users")
-# def edit_person(data  = Body()):
-  
-#     # получаем пользователя по id
-#     person = find_person(data["id"])
-#     # если не найден, отправляем статусный код и сообщение об ошибке
-#     if person == None: 
-#         return JSONResponse(
-#                 status_code=status.HTTP_404_NOT_FOUND, 
-#                 content={ "message": "Пользователь не найден" }
-#         )
-#     # если пользователь найден, изменяем его данные и отправляем обратно клиенту
-#     person.age = data["age"]
-#     person.name = data["name"]
-#     return person
- 
- 
-# @app.delete("/api/users/{id}")
-# def delete_person(id):
-#     # получаем пользователя по id
-#     person = find_person(id)
-  
-#     # если не найден, отправляем статусный код и сообщение об ошибке
-#     if person == None:
-#         return JSONResponse(
-#                 status_code=status.HTTP_404_NOT_FOUND, 
-#                 content={ "message": "Пользователь не найден" }
-#         )
-  
-#     # если пользователь найден, удаляем его
-#     people.remove(person)
-#     return person
-        
+from database import *
+from sqlalchemy.orm import Session
+from fastapi import Depends, FastAPI, Body
+from fastapi.responses import JSONResponse, FileResponse
+from sqlalchemy.orm import sessionmaker, Session
+from base import engine, Book, Author
+from sqlalchemy.ext.declarative import declarative_base
 
-from fastapi import FastAPI, Response, Form
-from datetime import datetime
+
+
+# book1 = Book('War and peace', 'Trilogy', 'Lev Tolstoy')
+# создаем таблицы
+
+# book = Book(title='War and peace', genre='Trilogy', author_id=db.au)
+# questions = db.query(Book).all()
+
+# for q in questions:
+#     print(q.title)
+# db.commit()
+
+
+
+# Base.metadata.create_all(bind=engine)
  
 app = FastAPI()
  
+# определяем зависимость
+def get_db():
+    Base = declarative_base()
+    Base.metadata.create_all(bind=engine)
+    SessionLocal = sessionmaker(autoflush=False, bind=engine)
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+  
 @app.get("/")
-def root(response: Response):
-    now = datetime.now()    # получаем текущую дату и время
-    response.set_cookie(key="last_visit", value=now)
-    return  {"message": "куки установлены"}
+def main():
+    return FileResponse("public/index.html")
+  
+@app.get("/api/authors")
+def get_authors(db: Session = Depends(get_db)):
+    return db.query(Author).all()
+
+  
+@app.get("/api/authors/{id}")
+def get_author(id, db: Session = Depends(get_db)):
+    # получаем пользователя по id
+    author = db.query(Author).filter(Author.id == id).first()
+    # если не найден, отправляем статусный код и сообщение об ошибке
+    if author==None:  
+        return JSONResponse(status_code=404, content={ "message": f"[!] Автор c id = {id} не найден"})
+    #если пользователь найден, отправляем его
+    return author
+  
+  
+@app.post("/api/authors")
+def create_author(data = Body(), db: Session = Depends(get_db)):
+    author = Author(name=data["name"])
+    if db.query(Author).filter(Author.name == author.name).first():
+        return JSONResponse(status_code=403, content={ "message": f"[!] Автор c именем '{author.name}' существует!"})
+    else:
+        db.add(author)
+        db.commit()
+        db.refresh(author)
+    return author
+
+
+@app.put("/api/authors")
+def edit_author(data  = Body(), db: Session = Depends(get_db)):
+   
+    # получаем пользователя по id
+    author = db.query(Author).filter(Author.id == data["id"]).first()
+    # если не найден, отправляем статусный код и сообщение об ошибке
+    if author == None: 
+        return JSONResponse(status_code=404, content={ "message": "[!] Пользователь не найден"})
+    # если пользователь найден, изменяем его данные и отправляем обратно клиенту
+    author.name = data["name"]
+    db.commit() # сохраняем изменения 
+    db.refresh(author)
+    return author
+
+
+@app.delete("/api/users/{id}")
+def delete_author(id, db: Session = Depends(get_db)):
+    # получаем пользователя по id
+    author = db.query(Author).filter(Author.id == id).first()
+   
+    # если не найден, отправляем статусный код и сообщение об ошибке
+    if author == None:
+        return JSONResponse( status_code=404, content={ "message": f"Автор с id = {id} не найден"})
+   
+    # если пользователь найден, удаляем его
+    db.delete(author)  # удаляем объект
+    db.commit()     # сохраняем изменения
+    return author
+
+from sqlalchemy.orm import sessionmaker
+
+
+# get_db()
+# SessionLocal = sessionmaker(autoflush=False, bind=engine)
+# db = SessionLocal()
+# author_id = db.query(Author.id).filter(Author.name == 'Lev Tolstoy').first()[0]
+# book = Book(title = 'Voina i mir tom 2', genre = 'Roman', author_id = author_id)
+
+# if db.query(Book).filter(Book.title == book.title, Book.author_id == book.author_id).first():
+#     print('Такая книга уже есть!')
+# else:
+#     db.add(book)     # добавляем в бд
+#     db.commit()     # сохраняем изменения
+

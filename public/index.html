@@ -16,10 +16,10 @@ button{margin: 5px;}
             Имя:<br/>
             <input id="userName" />
         </p>
-        <p>
+        <!-- <p>
             Возраст:<br />
             <input id="userAge" type="number" />
-        </p>
+        </p> -->
          <p>
             <button id="saveBtn">Сохранить</button>
             <button id="resetBtn">Сбросить</button>
@@ -33,32 +33,32 @@ button{margin: 5px;}
   
     <script>
     // Получение всех пользователей
-        async function getUsers() {
+        async function getAuthors() {
             // отправляет запрос и получаем ответ
-            const response = await fetch("/api/users", {
+            const response = await fetch("/api/authors", {
                 method: "GET",
                 headers: { "Accept": "application/json" }
             });
             // если запрос прошел нормально
             if (response.ok === true) {
                 // получаем данные
-                const users = await response.json();
+                const authors = await response.json();
                 const rows = document.querySelector("tbody");
                 // добавляем полученные элементы в таблицу
-                users.forEach(user => rows.append(row(user)));
+                authors.forEach(author => rows.append(row(author)));
             }
         }
         // Получение одного пользователя
-        async function getUser(id) {
-            const response = await fetch(`/api/users/${id}`, {
+        async function getAuthor(id) {
+            const response = await fetch(`/api/authors/${id}`, {
                 method: "GET",
                 headers: { "Accept": "application/json" }
             });
             if (response.ok === true) {
-                const user = await response.json();
+                const author = await response.json();
                 document.getElementById("userId").value = user.id;
                 document.getElementById("userName").value = user.name;
-                document.getElementById("userAge").value = user.age;
+
             }
             else {
                 // если произошла ошибка, получаем сообщение об ошибке
@@ -67,19 +67,17 @@ button{margin: 5px;}
             }
         }
         // Добавление пользователя
-        async function createUser(userName, userAge) {
-  
-            const response = await fetch("api/users", {
+        async function createAuthor(userName) {
+            const response = await fetch("api/authors", {
                 method: "POST",
                 headers: { "Accept": "application/json", "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    name: userName,
-                    age: parseInt(userAge, 10)
+                    name: userName
                 })
             });
             if (response.ok === true) {
-                const user = await response.json();
-                document.querySelector("tbody").append(row(user));
+                const author = await response.json();
+                document.querySelector("tbody").append(row(author));
             }
             else {
                 const error = await response.json();
@@ -87,14 +85,13 @@ button{margin: 5px;}
             }
         }
         // Изменение пользователя
-        async function editUser(userId, userName, userAge) {
-            const response = await fetch("api/users", {
+        async function editUser(userId, userName) {
+            const response = await fetch("api/authors", {
                 method: "PUT",
                 headers: { "Accept": "application/json", "Content-Type": "application/json" },
                 body: JSON.stringify({
                     id: userId,
-                    name: userName,
-                    age: parseInt(userAge, 10)
+                    name: userName
                 })
             });
             if (response.ok === true) {
@@ -124,9 +121,8 @@ button{margin: 5px;}
   
         // сброс данных формы после отправки
         function reset() {
-            document.getElementById("userId").value = 
-            document.getElementById("userName").value = 
-            document.getElementById("userAge").value = "";
+            document.getElementById("userId").value = ""
+            document.getElementById("userName").value = "";
         }
         // создание строки для таблицы
         function row(user) {
@@ -146,7 +142,7 @@ button{margin: 5px;}
   
             const editLink = document.createElement("button"); 
             editLink.append("Изменить");
-            editLink.addEventListener("click", async() => await getUser(user.id));
+            editLink.addEventListener("click", async() => await editUser(user.id));
             linksTd.append(editLink);
   
             const removeLink = document.createElement("button"); 
@@ -166,16 +162,16 @@ button{margin: 5px;}
              
             const id = document.getElementById("userId").value;
             const name = document.getElementById("userName").value;
-            const age = document.getElementById("userAge").value;
+            
             if (id === "")
-                await createUser(name, age);
+                await createAuthor(name);
             else
-                await editUser(id, name, age);
+                await editUser(name);
             reset();
         });
   
         // загрузка пользователей
-        getUsers();
+        getAuthors();
     </script>
 </body>
 </html>
