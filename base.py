@@ -1,7 +1,7 @@
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy import create_engine
-from sqlalchemy.orm import relationship, sessionmaker, Session
+from sqlalchemy.orm import relationship, sessionmaker
 
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///./datebase.db"
@@ -42,21 +42,3 @@ class BookAuthor(Base):
 
 SessionLocal = sessionmaker(autoflush=False, bind=engine)
 Base.metadata.create_all(bind=engine)
-#
-
-
-# with Session(bind=engine) as session:
-#     usr1 = session.query(Author).filter(Author.id == 3).first()
-#
-# #     session.add(usr1)
-# #
-# #     session.commit()
-# #
-# #     # add projects
-#     prj1 = Book(title="Kniga semena")
-#     session.add(prj1)
-#     session.commit()
-# #
-#     usr1.books.append(prj1)
-# # #
-#     session.commit()

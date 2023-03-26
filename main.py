@@ -1,7 +1,8 @@
 # """https://metanit.com/python/fastapi/1.15.php"""
-from fastapi import Depends, FastAPI, Body, Form
+from fastapi import Depends, FastAPI, Body
 from fastapi.responses import JSONResponse, FileResponse
-from base import *
+from base import SessionLocal, Author, Book
+from sqlalchemy.orm import Session
 
 
 app = FastAPI()
