@@ -1,102 +1,158 @@
 # """https://metanit.com/python/fastapi/1.15.php"""
-from database import *
-from sqlalchemy.orm import Session
-from fastapi import Depends, FastAPI, Body
+from fastapi import Depends, FastAPI, Body, Form
 from fastapi.responses import JSONResponse, FileResponse
-from sqlalchemy.orm import sessionmaker, Session
-from base import engine, Book, Author
-from sqlalchemy.ext.declarative import declarative_base
-
-
+from base import *
 
 
 app = FastAPI()
- 
+
+
 # определяем зависимость
 def get_db():
-    Base = declarative_base()
-    Base.metadata.create_all(bind=engine)
-    SessionLocal = sessionmaker(autoflush=False, bind=engine)
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
 
+
 @app.get("/")
 def main():
     return FileResponse("public/index.html")
-  
+
+
 @app.get("/api/authors")
 def get_authors(db: Session = Depends(get_db)):
     return db.query(Author).all()
 
   
 @app.get("/api/authors/{id}")
-def get_author(id, db: Session = Depends(get_db)):
-    # получаем пользователя по id
+def get_author(id: int, db: Session = Depends(get_db)):
+    # получаем пользователя по id:создаем запрос в БД, в фильтре указываем полученный id пользователя
     author = db.query(Author).filter(Author.id == id).first()
-    # если не найден, отправляем статусный код и сообщение об ошибке
-    if author==None:  
-        return JSONResponse(status_code=404, content={ "message": f"[!] Автор c id = {id} не найден"})
-    #если пользователь найден, отправляем его
+    # если пользователь с таким ip не найден, отправляем статусный код и сообщение об ошибке
+    if author is None:
+        return JSONResponse(status_code=404, content={"message": f"[!] Автор c id = {id} не найден"})
+    #если пользователь найден, возвращаем его
     return author
   
   
 @app.post("/api/authors")
-def create_author(data = Body(), db: Session = Depends(get_db)):
-    author = Author(name=data["name"])
+def create_author(name: str = Body(embed=True, min_length=2), db: Session = Depends(get_db)):
+    # создаем объект АВТОР
+    author = Author(name=name)
+    # если автор с таким именем существует, отправляем статусный код и сообщение
     if db.query(Author).filter(Author.name == author.name).first():
-        return JSONResponse(status_code=403, content={ "message": f"[!] Автор c именем '{author.name}' существует!"})
+        return JSONResponse(status_code=403, content={"message": f"[!] Автор c именем '{author.name}' существует!"})
     else:
+        # если нет сохраняем данные в БД и обновляем базу
         db.add(author)
         db.commit()
         db.refresh(author)
     return author
 
+
 @app.put("/api/authors")
-def edit_author(data  = Body(), db: Session = Depends(get_db)):
-   
-    # получаем пользователя по id
-    author = db.query(Author).filter(Author.id == data["id"]).first()
+def edit_author(id: int = Body(embed=True, gt=0), name: str = Body(embed=True, min_length=2), db: Session = Depends(get_db)):
+    # получаем автора по id
+    author = db.query(Author).filter(Author.id == id).first()
     # если не найден, отправляем статусный код и сообщение об ошибке
-    if author == None: 
-        return JSONResponse(status_code=404, content={ "message": "Пользователь не найден"})
+    if author is None:
+        return JSONResponse(status_code=404, content={"message": "[!] Автор не найден"})
     # если пользователь найден, изменяем его данные и отправляем обратно клиенту
-    # person.age = data["age"]
-    author.name = data["name"]
-    db.commit() # сохраняем изменения 
+    author.name = name
+    # сохраняем изменения
+    db.commit()
     db.refresh(author)
     return author
-
 
 
 @app.delete("/api/authors/{id}")
 def delete_author(id, db: Session = Depends(get_db)):
     # получаем пользователя по id
     author = db.query(Author).filter(Author.id == id).first()
-   
+
     # если не найден, отправляем статусный код и сообщение об ошибке
     if author == None:
-        return JSONResponse( status_code=404, content={ "message": f"Автор с id = {id} не найден"})
-   
+        return JSONResponse(status_code=404, content={"message": f"Автор с id = {id} не найден"})
+
     # если пользователь найден, удаляем его
     db.delete(author)  # удаляем объект
     db.commit()     # сохраняем изменения
     return author
 
-# from sqlalchemy.orm import sessionmaker
+
+@app.get("/api/books")
+def get_books(db: Session = Depends(get_db)):
+    return db.query(Book).all()
 
 
-# get_db()
-# SessionLocal = sessionmaker(autoflush=False, bind=engine)
-# db = SessionLocal()
-# author_id = db.query(Author.id).filter(Author.name == 'Lev Tolstoy').first()[0]
-# book = Book(title = 'Voina i mir tom 2', genre = 'Roman', author_id = author_id)
+@app.get("/api/books/{id}")
+def get_book(id: int, db: Session = Depends(get_db)):
+    # получаем книгу по id
+    book = db.query(Book).filter(Book.id == id).first()
+    # если не найдена, отправляем статусный код и сообщение об ошибке
+    if book is None:
+        return JSONResponse(status_code=404, content={"message": f"[!] Книга c id = {id} не найдена"})
+    #если найдена, отправляем ее
+    return book
 
-# if db.query(Book).filter(Book.title == book.title, Book.author_id == book.author_id).first():
-#     print('Такая книга уже есть!')
-# else:
-#     db.add(book)     # добавляем в бд
-#     db.commit()     # сохраняем изменения
 
+@app.post("/api/books")
+def create_book(title: str = Body(embed=True, min_length=2), db: Session = Depends(get_db)):
+    book = Book(title=title)
+    if db.query(Book).filter(Book.title == title).first():
+        return JSONResponse(status_code=403, content={"message": f"[!] Книга c названием '{book.title}' уже существует!"})
+    else:
+        db.add(book)
+        db.commit()
+        db.refresh(book)
+    return book
+
+
+@app.put("/api/books")
+def edit_book(id: int = Body(embed=True, gt=0), title: str = Body(embed=True, min_length=2), db: Session = Depends(get_db)):
+    # получаем книгу по id
+    book = db.query(Book).filter(Book.id == id).first()
+    # если книга не найдена, отправляем статусный код и сообщение об ошибке
+    if book is None: 
+        return JSONResponse(status_code=404, content={"message": "[!] Книга не найдена"})
+    # если книга найдена, изменяем ее данные и отправляем обратно клиенту
+    book.title = title
+    # сохраняем изменения
+    db.commit()
+    db.refresh(book)
+    return book
+
+
+@app.delete("/api/books/{id}")
+def delete_book(id: int, db: Session = Depends(get_db)):
+    # получаем книгу по id
+    book = db.query(Book).filter(Book.id == id).first()
+   
+    # если не найдена, отправляем статусный код и сообщение об ошибке
+    if book is None:
+        return JSONResponse(status_code=404, content={"message": f"[!] Книга c названием '{book.title}' не найдена!"})
+   
+    # если найдена, удаляем ее
+    db.delete(book)  # удаляем объект
+    db.commit()     # сохраняем изменения
+    db.refresh(book)
+    return book
+
+
+@app.post("/api/author_books")
+def author_book(
+        auth_id: int = Body(embed=True, gt=0),
+        book_id: int = Body(embed=True, gt=0),
+        db: Session = Depends(get_db)
+):
+    # находим автора и книгу по id
+    author = db.query(Author).filter(Author.id == auth_id).first()
+    book = db.query(Book).filter(Book.id == book_id).first()
+    # проверяем наличие записи в базе
+    if book.title in [book.title for book in author.books]:
+        return JSONResponse(status_code=403, content={"message": f"[!] Книга c названием '{book.title}', {author.name} уже существует!"})
+    author.books.append(book)
+    db.commit()
+    return author, book

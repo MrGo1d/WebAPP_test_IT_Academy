@@ -9,29 +9,134 @@ button{margin: 5px;}
 </style>
 </head>
 <body>
-    <h2>Список пользователей</h2>
-    <div>
-        <input type="hidden" id="userId" />
+    <h2>Books</h2>
+    <div style="width: 20%; border: solid 1px black;  border-radius: 10px; background: #ccc;ss; padding: 5px;">
+        <div style="width: 90%; border: solid 1px black;  border-radius: 10px; background: #ccc;ss">
+            <input type="hidden" id="bookId" />
+            <input type="hidden" id="userId" />
+            <p style="padding: 5px;">
+                Title:<br/>
+                <input id="title" placeholder="Title" />
+            </p>
+             <p>
+                <button id="saveBtnBook">Save</button>
+                <button id="resetBtnBook">Reset</button>
+            </p>
+        </div>
+        <div style="width: 90%; border: solid 1px black;  border-radius: 10px; background: #ccc;ss; ">
+            <p style="padding: 5px;">
+                Author:<br/>
+                <input id="userName" placeholder="Name"/>
+            </p>
+             <p>
+                <button id="saveBtn">Save</button>
+                <button id="resetBtn">Reset</button>
+            </p>
+        </div>
         <p>
-            Имя:<br/>
-            <input id="userName" />
-        </p>
-        <!-- <p>
-            Возраст:<br />
-            <input id="userAge" type="number" />
-        </p> -->
-         <p>
-            <button id="saveBtn">Сохранить</button>
-            <button id="resetBtn">Сбросить</button>
+            <button id="saveBtnAuthBook">Save Book</button>
+<!--            <button id="resetBtn">Сбросить</button>-->
         </p>
     </div>
+
+
+
     <table>
-        <thead><tr><th>Имя</th><th>Возраст</th><th></th></tr></thead>
+        <thead><tr><th>Имя</th></tr></thead>
         <tbody>
         </tbody>
     </table>
   
     <script>
+    // Получение всех книг
+        async function getBooks() {
+            // отправляет запрос и получаем ответ
+            const response = await fetch("/api/books", {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            // если запрос прошел нормально
+            if (response.ok === true) {
+                // получаем данные
+                const users = await response.json();
+                const rows = document.querySelector("tbody");
+                // добавляем полученные элементы в таблицу
+                users.forEach(user => rows.append(rowBook(user)));
+            }
+        }
+
+        // Получение книги по ID
+        async function getBook(id) {
+            const response = await fetch(`/api/books/${id}`, {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const user = await response.json();
+                document.getElementById("bookId").value = user.id;
+                document.getElementById("title").value = user.title;
+            }
+            else {
+                // если произошла ошибка, получаем сообщение об ошибке
+                const error = await response.json();
+                console.log(error.message); // и выводим его на консоль
+            }
+        }
+        // Добавление книги
+        async function createBook(title) {
+  
+            const response = await fetch("api/books", {
+                method: "POST",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    title: title,
+                })
+            });
+            if (response.ok === true) {
+                const user = await response.json();
+                document.querySelector("tbody").append(rowBook(user));
+            }
+            else {
+                const error = await response.json();
+                console.log(error.message);
+            }
+        }
+        // Изменение книги
+        async function editBook(bookId, title) {
+            const response = await fetch("api/books", {
+                method: "PUT",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    id: bookId,
+                    title: title,
+                })
+            });
+            if (response.ok === true) {
+                const user = await response.json();
+                document.querySelector(`tr[data-rowid='${user.id}']`).replaceWith(rowBook(user));
+            }
+            else {
+                const error = await response.json();
+                console.log(error.message);
+            }
+        }
+        // Удаление книги
+        async function deleteBook(id) {
+            const response = await fetch(`/api/books/${id}`, {
+                method: "DELETE",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const user = await response.json();
+                document.querySelector(`tr[data-rowid='${user.id}']`).remove();
+            }
+            else {
+                const error = await response.json();
+                console.log(error.message);
+            }
+        }
+
+
     // Получение всех авторов
         async function getAuthors() {
             // отправляет запрос и получаем ответ
@@ -67,7 +172,6 @@ button{margin: 5px;}
         }
         // Добавление автора
         async function createAuthor(userName) {
-  
             const response = await fetch("api/authors", {
                 method: "POST",
                 headers: { "Accept": "application/json", "Content-Type": "application/json" },
@@ -84,7 +188,7 @@ button{margin: 5px;}
                 console.log(error.message);
             }
         }
-        // Изменение пользователя
+        // Изменение автора
         async function editAuthor(userId, userName) {
             const response = await fetch("api/authors", {
                 method: "PUT",
@@ -103,7 +207,7 @@ button{margin: 5px;}
                 console.log(error.message);
             }
         }
-        // Удаление пользователя
+        // Удаление автора
         async function deleteAuthor(id) {
             const response = await fetch(`/api/authors/${id}`, {
                 method: "DELETE",
@@ -118,21 +222,52 @@ button{margin: 5px;}
                 console.log(error.message);
             }
         }
-  
-        // сброс данных формы после отправки
+
+        // Добавление автора + книг
+        async function createAuthorBook(userId, bookId) {
+
+            const response = await fetch("api/author_books", {
+                method: "POST",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    auth_id: userId,
+                    book_id: bookId
+                })
+            });
+            if (response.ok === true) {
+                const user = await response.json();
+<!--                document.querySelector("tbody").append(rowBook(user));-->
+            }
+            else {
+                const error = await response.json();
+                console.log(error.message);
+            }
+        }
+
+
+
+        // сброс данных формы после отправки Книга
+        function resetBook() {
+            document.getElementById("bookId").value = 
+            document.getElementById("title").value = "";
+        }
+
+        // сброс данных формы после отправки Автор
         function reset() {
-            document.getElementById("userId").value = 
+            document.getElementById("userId").value =
             document.getElementById("userName").value = "";
             // document.getElementById("userAge").value = "";
         }
+
+
         // создание строки для таблицы
-        function row(user) {
+        function rowBook(book) {
   
             const tr = document.createElement("tr");
-            tr.setAttribute("data-rowid", user.id);
+            tr.setAttribute("data-rowid", book.id);
   
             const nameTd = document.createElement("td");
-            nameTd.append(user.name);
+            nameTd.append(book.title);
             tr.append(nameTd);
   
             // const ageTd = document.createElement("td");
@@ -143,24 +278,73 @@ button{margin: 5px;}
   
             const editLink = document.createElement("button"); 
             editLink.append("Изменить");
-            editLink.addEventListener("click", async() => await getAuthor(user.id));
+            editLink.addEventListener("click", async() => await getBook(book.id));
             linksTd.append(editLink);
   
             const removeLink = document.createElement("button"); 
             removeLink.append("Удалить");
-            removeLink.addEventListener("click", async () => await deleteAuthor(user.id));
+            removeLink.addEventListener("click", async () => await deleteBook(book.id));
   
             linksTd.append(removeLink);
             tr.appendChild(linksTd);
   
             return tr;
         }
+
+        // создание строки для таблицы
+        function row(user) {
+
+            const tr = document.createElement("tr");
+            tr.setAttribute("data-rowid", user.id);
+
+            const nameTd = document.createElement("td");
+            nameTd.append(user.name);
+            tr.append(nameTd);
+
+            // const ageTd = document.createElement("td");
+            // ageTd.append(user.age);
+            // tr.append(ageTd);
+
+            const linksTd = document.createElement("td");
+
+            const editLink = document.createElement("button");
+            editLink.append("Изменить");
+            editLink.addEventListener("click", async() => await getAuthor(user.id));
+            linksTd.append(editLink);
+
+            const removeLink = document.createElement("button");
+            removeLink.append("Удалить");
+            removeLink.addEventListener("click", async () => await deleteAuthor(user.id));
+
+            linksTd.append(removeLink);
+            tr.appendChild(linksTd);
+
+            return tr;
+        }
+
+
+        // сброс значений формы
+        document.getElementById("resetBtnBook").addEventListener("click", () =>  resetBook());
+
         // сброс значений формы
         document.getElementById("resetBtn").addEventListener("click", () =>  reset());
-  
-        // отправка формы
-        document.getElementById("saveBtn").addEventListener("click", async () => {
+
+        // отправка формы книга
+        document.getElementById("saveBtnBook").addEventListener("click", async () => {
              
+            const id = document.getElementById("bookId").value;
+            const name = document.getElementById("title").value;
+            // const age = document.getElementById("userAge").value;
+            if (id === "")
+                await createBook(name);
+            else
+                await editBook(id, name);
+            resetBook();
+        });
+
+        // отправка формы автор
+        document.getElementById("saveBtn").addEventListener("click", async () => {
+
             const id = document.getElementById("userId").value;
             const name = document.getElementById("userName").value;
             // const age = document.getElementById("userAge").value;
@@ -170,9 +354,27 @@ button{margin: 5px;}
                 await editAuthor(id, name);
             reset();
         });
-  
+
+        // отправка формы авторы + книги
+        document.getElementById("saveBtnAuthBook").addEventListener("click", async () => {
+
+            const author_id = document.getElementById("userId").value;
+            const book_id = document.getElementById("bookId").value;
+            // const age = document.getElementById("userAge").value;
+<!--            if (id === "")-->
+            await createAuthorBook(author_id, book_id);
+<!--            else-->
+<!--                await editAuthor(id, name);-->
+            reset()
+            resetBook();
+        });
+
+
+
         // загрузка пользователей
+        getBooks();
         getAuthors();
+
     </script>
 </body>
 </html>
