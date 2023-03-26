@@ -15,7 +15,7 @@ button{margin: 5px;}
             <input type="hidden" id="bookId" />
             <input type="hidden" id="userId" />
             <p style="padding: 5px;">
-                Title:<br/>
+                Book:<br/>
                 <input id="title" placeholder="Title" />
             </p>
              <p>
@@ -39,10 +39,8 @@ button{margin: 5px;}
         </p>
     </div>
 
-
-
     <table>
-        <thead><tr><th>Имя</th></tr></thead>
+        <thead><tr><th>Authors&Books</th></tr></thead>
         <tbody>
         </tbody>
     </table>
@@ -227,6 +225,27 @@ button{margin: 5px;}
         async function createAuthorBook(userId, bookId) {
 
             const response = await fetch("api/author_books", {
+                method: "GET",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    auth_id: userId,
+                    book_id: bookId
+                })
+            });
+            if (response.ok === true) {
+                const user = await response.json();
+                document.querySelector("tbody").append(row(user));
+            }
+            else {
+                const error = await response.json();
+                console.log(error.message);
+            }
+        }
+
+    // Добавление автора + книг
+        async function createAuthorBook(userId, bookId) {
+
+            const response = await fetch("api/author_books", {
                 method: "POST",
                 headers: { "Accept": "application/json", "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -236,14 +255,13 @@ button{margin: 5px;}
             });
             if (response.ok === true) {
                 const user = await response.json();
-<!--                document.querySelector("tbody").append(rowBook(user));-->
+                document.querySelector("tbody").append(row(user));
             }
             else {
                 const error = await response.json();
                 console.log(error.message);
             }
         }
-
 
 
         // сброс данных формы после отправки Книга
@@ -270,19 +288,15 @@ button{margin: 5px;}
             nameTd.append(book.title);
             tr.append(nameTd);
   
-            // const ageTd = document.createElement("td");
-            // ageTd.append(user.age);
-            // tr.append(ageTd);
-  
             const linksTd = document.createElement("td");
   
             const editLink = document.createElement("button"); 
-            editLink.append("Изменить");
+            editLink.append("Edit");
             editLink.addEventListener("click", async() => await getBook(book.id));
             linksTd.append(editLink);
   
             const removeLink = document.createElement("button"); 
-            removeLink.append("Удалить");
+            removeLink.append("Delete");
             removeLink.addEventListener("click", async () => await deleteBook(book.id));
   
             linksTd.append(removeLink);
@@ -291,7 +305,7 @@ button{margin: 5px;}
             return tr;
         }
 
-        // создание строки для таблицы
+        // создание строки для таблицы авторы
         function row(user) {
 
             const tr = document.createElement("tr");
@@ -301,19 +315,15 @@ button{margin: 5px;}
             nameTd.append(user.name);
             tr.append(nameTd);
 
-            // const ageTd = document.createElement("td");
-            // ageTd.append(user.age);
-            // tr.append(ageTd);
-
             const linksTd = document.createElement("td");
 
             const editLink = document.createElement("button");
-            editLink.append("Изменить");
+            editLink.append("Edit");
             editLink.addEventListener("click", async() => await getAuthor(user.id));
             linksTd.append(editLink);
 
             const removeLink = document.createElement("button");
-            removeLink.append("Удалить");
+            removeLink.append("Delete");
             removeLink.addEventListener("click", async () => await deleteAuthor(user.id));
 
             linksTd.append(removeLink);
@@ -322,6 +332,32 @@ button{margin: 5px;}
             return tr;
         }
 
+        // создание строки для таблицы книги+авторы
+        function authBook(user) {
+
+            const tr = document.createElement("tr");
+            tr.setAttribute("data-rowid", user.auth_id);
+
+            const nameTd = document.createElement("td");
+            nameTd.append(user.book_id);
+            tr.append(nameTd);
+
+            const linksTd = document.createElement("td");
+
+            const editLink = document.createElement("button");
+            editLink.append("Edit");
+            editLink.addEventListener("click", async() => await getAuthor(user.id));
+            linksTd.append(editLink);
+
+            const removeLink = document.createElement("button");
+            removeLink.append("Delete");
+            removeLink.addEventListener("click", async () => await deleteAuthor(user.id));
+
+            linksTd.append(removeLink);
+            tr.appendChild(linksTd);
+
+            return tr;
+        }
 
         // сброс значений формы
         document.getElementById("resetBtnBook").addEventListener("click", () =>  resetBook());
@@ -334,7 +370,6 @@ button{margin: 5px;}
              
             const id = document.getElementById("bookId").value;
             const name = document.getElementById("title").value;
-            // const age = document.getElementById("userAge").value;
             if (id === "")
                 await createBook(name);
             else
@@ -361,16 +396,10 @@ button{margin: 5px;}
             const author_id = document.getElementById("userId").value;
             const book_id = document.getElementById("bookId").value;
             // const age = document.getElementById("userAge").value;
-<!--            if (id === "")-->
             await createAuthorBook(author_id, book_id);
-<!--            else-->
-<!--                await editAuthor(id, name);-->
             reset()
             resetBook();
         });
-
-
-
         // загрузка пользователей
         getBooks();
         getAuthors();

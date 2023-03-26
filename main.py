@@ -1,7 +1,6 @@
-# """https://metanit.com/python/fastapi/1.15.php"""
 from fastapi import Depends, FastAPI, Body
 from fastapi.responses import JSONResponse, FileResponse
-from base import SessionLocal, Author, Book
+from base import SessionLocal, Author, Book, BookAuthor
 from sqlalchemy.orm import Session
 
 
@@ -142,6 +141,11 @@ def delete_book(id: int, db: Session = Depends(get_db)):
     return book
 
 
+@app.get("/api/author_books")
+def get_author_books(db: Session = Depends(get_db)):
+    return db.query(BookAuthor).all()
+
+
 @app.post("/api/author_books")
 def author_book(
         auth_id: int = Body(embed=True, gt=0),
@@ -156,4 +160,4 @@ def author_book(
         return JSONResponse(status_code=403, content={"message": f"[!] Книга c названием '{book.title}', {author.name} уже существует!"})
     author.books.append(book)
     db.commit()
-    return author, book
+    return author

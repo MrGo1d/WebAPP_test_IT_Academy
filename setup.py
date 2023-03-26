@@ -12,6 +12,6 @@ setup(
         "SQLAlchemy==2.0.7",
         "uvicorn==0.21.1"
     ],
-    scripts=['app/main.py'],
+    scripts=['main.py'],
     python_requires='==3.11'
 )
